@@ -56,7 +56,8 @@ def remove_unwanted_columns(inputfilename):
 
             for fieldname in fieldnames:
                 deleted_cols = ["director_name","actor_2_name","actor_1_name","movie_title",
-                                "actor_3_name","movie_imdb_link","gross","imdb_score"]
+                                "actor_3_name","movie_imdb_link","gross","imdb_score", "num_critic_for_reviews",
+                                "num_voted_users","num_user_for_reviews"]
                 for col in deleted_cols:
                     if col == fieldname:
                         idx = fieldnames.index(fieldname)
@@ -66,11 +67,14 @@ def remove_unwanted_columns(inputfilename):
             writer = csv.DictWriter(open('features.csv','w'), fieldnames=fieldnames)
             stopper = 0
             for row in reader:
+                del row["num_critic_for_reviews"]
                 del row["director_name"]
                 del row["actor_2_name"]
                 del row["actor_1_name"]
                 del row["movie_title"]
                 del row["actor_3_name"]
+                del row["num_voted_users"]
+                del row["num_user_for_reviews"]
                 del row["movie_imdb_link"]
                 outputfileY1.write(row['gross']+'\n')
                 outputfileY2.write(row['imdb_score']+'\n')

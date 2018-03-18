@@ -1,31 +1,85 @@
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
-import pandas as pd
-import numpy as np
-
-def encode_categorical_features(inputfilename):
-    df = pd.read_csv(inputfilename)
-    country = np.array(df["country"])
-    #X = df.iloc[:,:].values
+import csv
 
 
-    label_enc = LabelEncoder()
+def get_encoding_columns_titles(inputfile):
+    """
+    Args:
+        filename (str): The csv file containing the movie metadata from which to obtain the categorical column titles
+    Returns:
+        column_titles (dict): A dictionary with keys as title of a categorical features and values as the possible categories under the feature
+    Raises:
+        IOError: Unable to read file
+    """
+    categorical_features = ["color", "genres", "plot_keywords", "language", "country", "content_rating"]
+    feature_and_categories = {}
+    for item in categorical_features:
+        feature_and_categories[item] = []
 
-    country_encoded = label_enc.fit_transform(country)
+    try:
+        with open(inputfile) as file:
+            reader = csv.DictReader(file, delimiter=',')
+            for row in reader:
+                for feature in categorical_features:
+                    temp = row[feature].strip()
+                    temp = temp.replace(u"'" , '')
+                    temp = temp.lower()
+                    categories = temp.split('|')
+                    for category in categories:
+                        if category not in feature_and_categories[feature]:
+                            feature_and_categories[feature].append(category)
+    except IOError:
+        logging.exception('')
 
-    onehot_enc = OneHotEncoder(sparse = False)
+    return feature_and_categories
 
-    country_encoded = country_encoded.reshape(len(country_encoded),1)
 
-    onehot_encoded = onehot_enc.fit_transform(country_encoded)
+def encode_categorical_features(inputfile):
+    """
+    Args:
+        inputfilename (str): The csv file containing the movie metadata
+    Returns:
+        encoded_features (str): A csv file in which all categorical features are encoded
+    Raises:
+        IOError: Unable to read file
+    """
 
-    print(onehot_encoded)
+    feature_and_categories = get_encoding_columns_titles(inputfile)
+    outputfile = open('encoded_features.csv', 'w')
+    try:
+        with open(inputfile) as file:
+            reader = csv.DictReader(file, delimiter=',')
+            fieldnames = reader.fieldnames
 
-'''
-    df["country"] = label_enc.fit_transform(df["country"])
-    onehot_enc = OneHotEncoder(categorical_features=[13])
+            title_line = ''
+            for fieldname in fieldnames:
+                if fieldname.strip().lower() in feature_and_categories.keys():
+                    for category in feature_and_categories[fieldname.strip().lower()]:
+                        title_line = title_line + ',' + category.strip()
+                else:
+                    title_line = title_line + ',' + fieldname
+            if title_line[0] == ",":
+                title_line = title_line[1:]
 
-    X = onehot_enc.fit(df["country"])
-    print(X)
+            outputfile.write(title_line + '\n')
 
-    return X
-'''
+            for row in reader:
+                line = ''
+                for fieldname in fieldnames:
+                    if fieldname.strip().lower() in feature_and_categories.keys():
+                        temp = row[fieldname].strip()
+                        temp = temp.replace(u"'" , '')
+                        temp = temp.lower()
+                        data = temp.split('|')
+                        for category in feature_and_categories[fieldname.strip().lower()]:
+                            if category in data:
+                                line = line + ',' + '1'
+                            else:
+                                line = line + ',' + '0'
+                    else:
+                        line = line + ',' + row[fieldname]
+                if line[0] == ",":
+                    line = line[1:]
+                outputfile.write(line + '\n')
+            outputfile.close()
+    except IOError:
+        logging.exception('')
